@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日食譜清單</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .date {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .recipe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .recipe-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .recipe-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .recipe-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .recipe-content {
+            padding: 20px;
+        }
+
+        .recipe-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .recipe-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .recipe-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .recipe-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .recipe-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #f0f0f0;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            color: #555;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .close-btn {
+            float: right;
+            font-size: 2em;
+            cursor: pointer;
+            color: #666;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .ingredients-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .ingredients-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .ingredients-list li:before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .steps-list {
+            list-style: none;
+            counter-reset: step-counter;
+            padding: 0;
+        }
+
+        .steps-list li {
+            counter-increment: step-counter;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            position: relative;
+            padding-left: 50px;
+        }
+
+        .steps-list li:before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .add-recipe-form {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            color: #555;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍳 每日食譜清單</h1>
+            <div class="date" id="currentDate"></div>
+        </header>
+
+        <div class="controls">
+            <button class="btn" onclick="toggleAddForm()">➕ 新增食譜</button>
+            <button class="btn" onclick="filterRecipes('all')">全部</button>
+            <button class="btn" onclick="filterRecipes('breakfast')">早餐</button>
+            <button class="btn" onclick="filterRecipes('lunch')">午餐</button>
+            <button class="btn" onclick="filterRecipes('dinner')">晚餐</button>
+            <button class="btn" onclick="filterRecipes('dessert')">甜點</button>
+        </div>
+
+        <div class="add-recipe-form" id="addForm" style="display: none;">
+            <h2>新增食譜</h2>
+            <form onsubmit="addRecipe(event)">
+                <div class="form-group">
+                    <label>食譜名稱</label>
+                    <input type="text" id="recipeName" required>
+                </div>
+                <div class="form-group">
+                    <label>分類</label>
+                    <select id="recipeCategory" required>
+                        <option value="breakfast">早餐</option>
+                        <option value="lunch">午餐</option>
+                        <option value="dinner">晚餐</option>
+                        <option value="dessert">甜點</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>烹飪時間（分鐘）</label>
+                    <input type="number" id="recipeTime" required>
+                </div>
+                <div class="form-group">
+                    <label>難度</label>
+                    <select id="recipeDifficulty" required>
+                        <option value="簡單">簡單</option>
+                        <option value="中等">中等</option>
+                        <option value="困難">困難</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>圖片網址</label>
+                    <input type="url" id="recipeImage" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="form-group">
+                    <label>簡短描述</label>
+                    <textarea id="recipeDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>食材（每行一項）</label>
+                    <textarea id="recipeIngredients" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>步驟（每行一個步驟）</label>
+                    <textarea id="recipeSteps" required></textarea>
+                </div>
+                <button type="submit" class="btn">儲存食譜</button>
+                <button type="button" class="btn" onclick="toggleAddForm()">取消</button>
+            </form>
+        </div>
+
+        <div class="recipe-grid" id="recipeGrid"></div>
+    </div>
+
+    <div class="modal" id="recipeModal">
+        <div class="modal-content">
+            <img class="modal-image" id="modalImage" src="" alt="">
+            <div class="modal-body">
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+                <h2 id="modalTitle"></h2>
+                <div class="recipe-meta" id="modalMeta"></div>
+                <p id="modalDescription"></p>
+                
+                <h3>🥘 食材</h3>
+                <ul class="ingredients-list" id="modalIngredients"></ul>
+                
+                <h3>👩‍🍳 烹飪步驟</h3>
+                <ol class="steps-list" id="modalSteps"></ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 示範食譜資料
+        let recipes = [
+            {
+                id: 1,
+                name: "番茄炒蛋",
+                category: "lunch",
+                time: 15,
+                difficulty: "簡單",
+                image: "https://images.unsplash.com/photo-1608039829572-78524f79c4c7?w=400",
+                description: "經典的家常菜，酸甜可口，營養豐富",
+                ingredients: ["雞蛋 3顆", "番茄 2顆", "蔥花 適量", "鹽 適量", "糖 1小匙"],
+                steps: [
+                    "雞蛋打散，加少許鹽調味",
+                    "番茄切塊備用",
+                    "熱油鍋，先炒雞蛋至半熟後盛出",
+                    "原鍋炒番茄至出汁",
+                    "加入雞蛋、糖、鹽調味",
+                    "撒上蔥花即可"
+                ]
+            },
+            {
+                id: 2,
+                name: "三明治",
+                category: "breakfast",
+                time: 10,
+                difficulty: "簡單",
+                image: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400",
+                description: "快速營養的早餐選擇，可以自由搭配喜歡的食材",
+                ingredients: ["吐司 2片", "火腿 2片", "起司 1片", "生菜 適量", "番茄 1片", "美乃滋 適量"],
+                steps: [
+                    "吐司稍微烤一下",
+                    "一片吐司抹上美乃滋",
+                    "依序放上生菜、火腿、起司、番茄",
+                    "蓋上另一片吐司",
+                    "對角切開即可"
+                ]
+            },
+            {
+                id: 3,
+                name: "紅燒牛肉麵",
+                category: "dinner",
+                time: 120,
+                difficulty: "中等",
+                image: "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=400",
+                description: "濃郁湯頭配上軟嫩牛肉，是台灣人最愛的麵食",
+                ingredients: ["牛腱 500g", "麵條 適量", "蔥 2根", "薑 3片", "蒜頭 5瓣", "八角 2顆", "辣豆瓣醬 2大匙", "醬油 3大匙", "米酒 2大匙"],
+                steps: [
+                    "牛腱切塊，汆燙去血水",
+                    "熱油爆香蔥薑蒜",
+                    "加入豆瓣醬炒香",
+                    "放入牛肉拌炒",
+                    "加入醬油、米酒、八角和水",
+                    "燉煮約2小時至軟爛",
+                    "另煮麵條，淋上牛肉湯即可"
+                ]
+            },
+            {
+                id: 4,
+                name: "提拉米蘇",
+                category: "dessert",
+                time: 30,
+                difficulty: "中等",
+                image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400",
+                description: "義式經典甜點，咖啡香氣與奶油的完美結合",
+                ingredients: ["馬斯卡彭起司 250g", "蛋黃 3顆", "糖 80g", "濃縮咖啡 200ml", "手指餅乾 適量", "可可粉 適量"],
+                steps: [
+                    "蛋黃加糖打發至濃稠",
+                    "加入馬斯卡彭起司拌勻",
+                    "手指餅乾快速沾咖啡液",
+                    "鋪一層餅乾在容器底部",
+                    "抹上一層起司糊",
+                    "重複鋪層",
+                    "冷藏4小時以上",
+                    "食用前撒可可粉"
+                ]
+            }
+        ];
+
+        let currentFilter = 'all';
+
+        // 顯示當前日期
+        function updateDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-TW', options);
+        }
+
+        // 渲染食譜卡片
+        function renderRecipes() {
+            const grid = document.getElementById('recipeGrid');
+            const filteredRecipes = currentFilter === 'all' 
+                ? recipes 
+                : recipes.filter(r => r.category === currentFilter);
+            
+            grid.innerHTML = filteredRecipes.map(recipe => `
+                <div class="recipe-card" onclick="openModal(${recipe.id})">
+                    <img class="recipe-image" src="${recipe.image}" alt="${recipe.name}" onerror="this.src='https://via.placeholder.com/400x200?text=No+Image'">
+                    <div class="recipe-content">
+                        <div class="recipe-title">${recipe.name}</div>
+                        <div class="recipe-meta">
+                            <span>⏱️ ${recipe.time}分鐘</span>
+                            <span>📊 ${recipe.difficulty}</span>
+                        </div>
+                        <div class="recipe-description">${recipe.description}</div>
+                        <div class="recipe-tags">
+                            <span class="tag">${getCategoryName(recipe.category)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 取得分類中文名稱
+        function getCategoryName(category) {
+            const names = {
+                breakfast: '早餐',
+                lunch: '午餐',
+                dinner: '晚餐',
+                dessert: '甜點'
+            };
+            return names[category] || category;
+        }
+
+        // 篩選食譜
+        function filterRecipes(category) {
+            currentFilter = category;
+            renderRecipes();
+        }
+
+        // 開啟模態視窗
+        function openModal(recipeId) {
+            const recipe = recipes.find(r => r.id === recipeId);
+            if (!recipe) return;
+
+            document.getElementById('modalImage').src = recipe.image;
+            document.getElementById('modalTitle').textContent = recipe.name;
+            document.getElementById('modalMeta').innerHTML = `
+                <span>⏱️ ${recipe.time}分鐘</span>
+                <span>📊 ${recipe.difficulty}</span>
+                <span>🍽️ ${getCategoryName(recipe.category)}</span>
+            `;
+            document.getElementById('modalDescription').textContent = recipe.description;
+            
+            document.getElementById('modalIngredients').innerHTML = recipe.ingredients
+                .map(ing => `<li>${ing}</li>`).join('');
+            
+            document.getElementById('modalSteps').innerHTML = recipe.steps
+                .map(step => `<li>${step}</li>`).join('');
+            
+            document.getElementById('recipeModal').classList.add('active');
+        }
+
+        // 關閉模態視窗
+        function closeModal() {
+            document.getElementById('recipeModal').classList.remove('active');
+        }
+
+        // 切換新增表單
+        function toggleAddForm() {
+            const form = document.getElementById('addForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 新增食譜
+        function addRecipe(event) {
+            event.preventDefault();
+            
+            const newRecipe = {
+                id: recipes.length + 1,
+                name: document.getElementById('recipeName').value,
+                category: document.getElementById('recipeCategory').value,
+                time: parseInt(document.getElementById('recipeTime').value),
+                difficulty: document.getElementById('recipeDifficulty').value,
+                image: document.getElementById('recipeImage').value || 'https://via.placeholder.com/400x200?text=No+Image',
+                description: document.getElementById('recipeDescription').value,
+                ingredients: document.getElementById('recipeIngredients').value.split('\n').filter(i => i.trim()),
+                steps: document.getElementById('recipeSteps').value.split('\n').filter(s => s.trim())
+            };
+            
+            recipes.push(newRecipe);
+            renderRecipes();
+            toggleAddForm();
+            event.target.reset();
+            alert('食譜已新增成功！');
+        }
+
+        // 初始化
+        updateDate();
+        renderRecipes();
+
+        // 點擊模態視窗外部關閉
+        document.getElementById('recipeModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
